@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Param,
-  ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Post, Body, Get, Param } from '@nestjs/common';
 import { PontosDescarteService } from './pontos-descarte.service';
 import { CreatePontoDto } from '../dtos/create-ponto.dto';
 
@@ -24,7 +17,7 @@ export class PontosDescarteController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id') id: string) {
     return this.pontosService.findOne(id);
   }
 }

@@ -23,7 +23,7 @@ export class PontosDescarteService {
     return this.pontoModel.find().exec();
   }
 
-  async findOne(id: number): Promise<PontoDescarte> {
+  async findOne(id: string): Promise<PontoDescarte> {
     const ponto = await this.pontoModel.findById(id).exec();
     if (!ponto) {
       throw new NotFoundException(`Ponto com ID ${id} não encontrado.`);

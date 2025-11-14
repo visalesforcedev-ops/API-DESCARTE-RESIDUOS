@@ -19,6 +19,7 @@ export class PontoDescarte {
 
   @Prop()
   geolocalizacao: string;
+  id: any;
 }
 
 export const PontoDescarteSchema = SchemaFactory.createForClass(PontoDescarte);

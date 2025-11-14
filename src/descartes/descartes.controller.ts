@@ -9,17 +9,17 @@ export class DescartesController {
   ) {}
 
   @Post()
-  create(@Body() descarteDto: CreateDescarteDto) {
+  async create(@Body() descarteDto: CreateDescarteDto) {
     return this.descartesService.create(descarteDto);
   }
 
   @Get()
-  findAll(@Query() filtros: descartesService_1.FiltrosConsulta) {
+  async findAll(@Query() filtros: descartesService_1.FiltrosConsulta) {
     return this.descartesService.findAll(filtros);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string) {
     return this.descartesService.findOne(id);
   }
 }

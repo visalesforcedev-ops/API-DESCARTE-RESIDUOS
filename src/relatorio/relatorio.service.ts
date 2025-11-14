@@ -43,15 +43,12 @@ export class RelatorioService {
     todosDescartes: Descarte[],
   ): Promise<string> {
     if (todosDescartes.length === 0) return 'Nenhum registro';
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const contagem = todosDescartes.reduce(
-      (acc, descarte) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-base-to-string
-        const id = descarte.id_ponto_descarte.toString();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      (acc: Record<string, number>, descarte) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const id = descarte.id_ponto_descarte.id;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         acc[id] = (acc[id] || 0) + 1;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return acc;
       },
       {} as Record<string, number>,
@@ -62,12 +59,13 @@ export class RelatorioService {
     );
 
     try {
-      const idNumero = Number(idMaisFrequente);
-      if (Number.isNaN(idNumero)) return 'ID não encontrado';
-      const ponto = await this.pontosService.findOne(idNumero);
+      const ponto = await this.pontosService.findOne(idMaisFrequente);
       return ponto ? ponto.nome_local : 'ID não encontrado';
     } catch (error) {
-      return `ID não encontrado: ${error}`;
+      if (error instanceof Error) {
+        return `ID não encontrado: ${error.message}`;
+      }
+      return 'ID não encontrado';
     }
   }
 
