@@ -1,35 +1,30 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePontoDto } from '../dtos/create-ponto.dto';
-
-export interface PontoDescarte {
-  id: number;
-  nome_local: string;
-  bairro: string;
-  tipo_local: 'publico' | 'privado';
-  categoria_residuos: string[];
-  geolocalizacao: string;
-}
+import {
+  PontoDescarte,
+  PontoDescarteDocument,
+} from 'src/schemas/ponto-descarte.schema';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class PontosDescarteService {
-  private pontos: PontoDescarte[] = [];
-  private currentId = 1;
+  constructor(
+    @InjectModel(PontoDescarte.name)
+    private pontoModel: Model<PontoDescarteDocument>,
+  ) {}
 
-  create(pontoDto: CreatePontoDto): PontoDescarte {
-    const novoPonto: PontoDescarte = {
-      id: this.currentId++,
-      ...pontoDto,
-    };
-    this.pontos.push(novoPonto);
-    return novoPonto;
+  async create(pontoDto: CreatePontoDto): Promise<PontoDescarte> {
+    const novoPonto = new this.pontoModel(pontoDto);
+    return novoPonto.save();
   }
 
-  findAll(): PontoDescarte[] {
-    return this.pontos;
+  async findAll(): Promise<PontoDescarte[]> {
+    return this.pontoModel.find().exec();
   }
 
-  findOne(id: number): PontoDescarte {
-    const ponto = this.pontos.find((p) => p.id === id);
+  async findOne(id: number): Promise<PontoDescarte> {
+    const ponto = await this.pontoModel.findById(id).exec();
     if (!ponto) {
       throw new NotFoundException(`Ponto com ID ${id} não encontrado.`);
     }

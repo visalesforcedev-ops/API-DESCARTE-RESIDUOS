@@ -1,16 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateDescarteDto } from '../dtos/create-descarte.dto';
-
-export interface Descarte {
-  id: number;
-  nome_usuario: string;
-  id_ponto_descarte: number;
-  tipo_residuo: 'plástico' | 'papel' | 'orgânico' | 'eletrônico' | 'vidro';
-  data: Date;
-}
+import { InjectModel } from '@nestjs/mongoose';
+import { Descarte, DescarteDocument } from 'src/schemas/descarte-ponto-schema';
+import { Model } from 'mongoose';
 
 export interface FiltrosConsulta {
-  id_ponto_descarte?: number;
+  id_ponto_descarte?: string;
   tipo_residuo?: 'plástico' | 'papel' | 'orgânico' | 'eletrônico' | 'vidro';
   data?: Date;
   nome_usuario?: string;
@@ -18,48 +13,49 @@ export interface FiltrosConsulta {
 
 @Injectable()
 export class DescartesService {
-  private descartes: Descarte[] = [];
-  private currentId = 1;
+  constructor(
+    @InjectModel(Descarte.name) private descarteModel: Model<DescarteDocument>,
+  ) {}
 
-  create(descarteDto: CreateDescarteDto): Descarte {
-    const novoDescarte: Descarte = {
-      id: this.currentId++,
+  async create(descarteDto: CreateDescarteDto): Promise<Descarte> {
+    const novoDescarte = new this.descarteModel({
       ...descarteDto,
       data: new Date(descarteDto.data),
-    };
-    this.descartes.push(novoDescarte);
-    return novoDescarte;
+      id_ponto_descarte: descarteDto.id_ponto_descarte,
+    });
+    return novoDescarte.save();
   }
 
-  findAll(filtros: FiltrosConsulta): Descarte[] {
-    let resultado = this.descartes;
+  async findAll(filtros: FiltrosConsulta): Promise<Descarte[]> {
+    const query = {};
     const { id_ponto_descarte, tipo_residuo, nome_usuario, data } = filtros;
 
     if (id_ponto_descarte) {
-      resultado = resultado.filter(
-        (d) => d.id_ponto_descarte === +id_ponto_descarte,
-      );
+      query['id_ponto_descarte'] = id_ponto_descarte;
     }
     if (tipo_residuo) {
-      resultado = resultado.filter((d) => d.tipo_residuo === tipo_residuo);
+      query['tipo_residuo'] = tipo_residuo;
     }
     if (nome_usuario) {
-      resultado = resultado.filter((d) => d.nome_usuario === nome_usuario);
+      query['nome_usuario'] = nome_usuario;
     }
     if (data) {
       const dataFiltro = new Date(data);
-      resultado = resultado.filter(
-        (d) => d.data.toDateString() === dataFiltro.toDateString(),
-      );
+      const inicioDia = new Date(dataFiltro.setHours(0, 0, 0, 0));
+      const fimDia = new Date(dataFiltro.setHours(23, 59, 59, 999));
+      query['data'] = { $gte: inicioDia, $lte: fimDia };
     }
 
-    return resultado;
+    return this.descarteModel.find(query).populate('id_ponto_descarte').exec();
   }
 
-  findOne(id: number): Descarte {
-    const descarte = this.descartes.find((d) => d.id === id);
+  async findOne(id: string): Promise<Descarte> {
+    const descarte = await this.descarteModel
+      .findById(id)
+      .populate('id_ponto_descarte')
+      .exec();
     if (!descarte) {
-      throw new NotFoundException(`Descarte com ID ${id} não encontrado.`);
+      throw new NotFoundException(`Descarte com id ${id} não encontrado.`);
     }
     return descarte;
   }

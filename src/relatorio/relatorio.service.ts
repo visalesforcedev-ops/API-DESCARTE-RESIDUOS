@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DescartesService } from '../descartes/descartes.service';
 import { PontosDescarteService } from '../pontos-descarte/pontos-descarte.service';
+import { Descarte } from '../schemas/descarte-ponto-schema';
 
 @Injectable()
 export class RelatorioService {
@@ -9,18 +10,22 @@ export class RelatorioService {
     private readonly pontosService: PontosDescarteService,
   ) {}
 
-  generateReport() {
-    const todosDescartes = this.descartesService.findAll({});
-    const todosPontos = this.pontosService.findAll();
+  async generateReport() {
+    const [todosDescartes, todosPontos] = await Promise.all([
+      this.descartesService.findAll({}),
+      this.pontosService.findAll(),
+    ]);
 
     const totalPontosDescarte = todosPontos.length;
 
     const usuariosUnicos = new Set(todosDescartes.map((d) => d.nome_usuario));
     const totalUsuarios = usuariosUnicos.size;
 
-    const localMaisRegistros = this.findLocalComMaisRegistros();
-    const residuoMaisFrequente = this.findResiduoMaisFrequente();
-    const mediaUltimos30Dias = this.calculateMediaUltimos30Dias();
+    const residuoMaisFrequente = this.findResiduoMaisFrequente(todosDescartes);
+    const mediaUltimos30Dias = this.calculateMediaUltimos30Dias(todosDescartes);
+    const localMaisRegistros =
+      await this.findLocalComMaisRegistros(todosDescartes);
+
     const percentualCrescimento = 'N/A';
 
     return {
@@ -34,29 +39,39 @@ export class RelatorioService {
     };
   }
 
-  private findLocalComMaisRegistros(): string {
-    const todosDescartes = this.descartesService.findAll({});
+  private async findLocalComMaisRegistros(
+    todosDescartes: Descarte[],
+  ): Promise<string> {
     if (todosDescartes.length === 0) return 'Nenhum registro';
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const contagem = todosDescartes.reduce(
       (acc, descarte) => {
-        acc[descarte.id_ponto_descarte] =
-          (acc[descarte.id_ponto_descarte] || 0) + 1;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-base-to-string
+        const id = descarte.id_ponto_descarte.toString();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        acc[id] = (acc[id] || 0) + 1;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return acc;
       },
-      {} as Record<number, number>,
+      {} as Record<string, number>,
     );
 
     const idMaisFrequente = Object.keys(contagem).reduce((a, b) =>
       contagem[a] > contagem[b] ? a : b,
     );
 
-    const ponto = this.pontosService.findOne(+idMaisFrequente);
-    return ponto ? ponto.nome_local : 'ID não encontrado';
+    try {
+      const idNumero = Number(idMaisFrequente);
+      if (Number.isNaN(idNumero)) return 'ID não encontrado';
+      const ponto = await this.pontosService.findOne(idNumero);
+      return ponto ? ponto.nome_local : 'ID não encontrado';
+    } catch (error) {
+      return `ID não encontrado: ${error}`;
+    }
   }
 
-  private findResiduoMaisFrequente(): string {
-    const todosDescartes = this.descartesService.findAll({});
+  private findResiduoMaisFrequente(todosDescartes: Descarte[]): string {
     if (todosDescartes.length === 0) return 'Nenhum registro';
 
     const contagem = todosDescartes.reduce(
@@ -72,8 +87,7 @@ export class RelatorioService {
     );
   }
 
-  private calculateMediaUltimos30Dias(): number {
-    const todosDescartes = this.descartesService.findAll({});
+  private calculateMediaUltimos30Dias(todosDescartes: Descarte[]): number {
     const agora = new Date();
     const trintaDiasAtras = new Date();
     trintaDiasAtras.setDate(agora.getDate() - 30);

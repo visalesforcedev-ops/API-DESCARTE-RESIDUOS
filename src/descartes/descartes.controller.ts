@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Query,
-  Param,
-  ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Param } from '@nestjs/common';
 import * as descartesService_1 from './descartes.service';
 import { CreateDescarteDto } from '../dtos/create-descarte.dto';
 
@@ -27,7 +19,7 @@ export class DescartesController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id') id: string) {
     return this.descartesService.findOne(id);
   }
 }
